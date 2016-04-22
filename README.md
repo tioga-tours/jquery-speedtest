@@ -50,5 +50,8 @@ var speedTest = new SpeedTest({
     arbitraryConnectionTime: 20
   }
 });
-    
+
+speedTest.benchmark(function(downloadSpeed, uploadSpeed) {
+  console.log('Benchmark completed. Downloadspeed: ' + (downloadSpeed/1024) + ' KB/s, uploadspeed: ' + (uploadspeed/2014) + ' KB/s');
+});
 ```
