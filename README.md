@@ -52,6 +52,6 @@ var speedTest = new SpeedTest({
 });
 
 speedTest.benchmark(function(downloadSpeed, uploadSpeed) {
-  console.log('Benchmark completed. Downloadspeed: ' + (downloadSpeed/1024) + ' KB/s, uploadspeed: ' + (uploadspeed/2014) + ' KB/s');
+  console.log('Benchmark completed. Downloadspeed: ' + (downloadSpeed/1024) + ' KB/s, uploadspeed: ' + (uploadSpeed/1024) + ' KB/s');
 });
 ```
