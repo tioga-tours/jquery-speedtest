@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Javascript connection benchmark</title>
+		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+		<script type="text/javascript" src="jquery.speedtest.js"></script>
+		<script type="text/javascript">
+		$(document).ready(function() {
+			var speedTest = new SpeedTest({
+			  upload: {
+				// Where to post the data to
+				// This should be a valid post-target
+				// It should return a 200 header, but as little as possible
+				url: '/speedtest.php', 
+				// Initial post size in bytes
+				byteSize: 1024 * 1024,
+				// Make data larger or smaller with every try (100KB)
+				byteStep: 1024 * 1024,
+				// Number of tries to average
+				iterations: 5,
+				// How many seconds to wait before trying smaller size
+				timeout: 2,
+				// Every request has a little overhead for headers
+				//  this is an arbitrary number in bytes
+				arbitraryHeaderByteSize: 400,
+				// Normally the connection time is about 10-20 milliseconds
+				// this is also an arbitrary number in milliseconds
+				arbitraryConnectionTime: 0
+			  },
+			  download: {
+				// Where to get the data
+				//  as the library measures the total time
+				//  keep processing as small as possible
+				//  a get parameter is added for the requested size
+				//  Below will become https://hostname.com/source?size=307200
+				url: '/speedtest.php',
+				// Initial download size in bytes
+				byteSize: 1024 * 1024,
+				// Make data larger or smaller with every try (100KB)
+				byteStep: 1024 * 1024,
+				// Number of tries to average
+				iterations: 5,
+				// How many seconds to wait before trying smaller size
+				timeout: 2,
+				// Every request has a little overhead for headers
+				//  this is an arbitrary number in bytes
+				arbitraryHeaderByteSize: 400,
+				// Normally the connection time is about 10-20 milliseconds
+				// this is also an arbitrary number in milliseconds
+				arbitraryConnectionTime: 0
+			  }
+			});
+
+			speedTest.benchmark(function(downloadSpeed, uploadSpeed) {
+			  $('#status').text('Benchmark completed. Downloadspeed: ' + Math.round(downloadSpeed/1024) + ' KB/s, uploadspeed: ' + Math.round(uploadSpeed/1024) + ' KB/s');
+			});
+		});
+		</script>
+	</head>
+	<body>
+		<h1>jQuery speedtest</h1>
+		<p id="status">The speedtest is running...</p>
+	</body>
+</html>
