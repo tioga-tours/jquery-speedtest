@@ -1,6 +1,6 @@
 # jquery-speedtest
 
-Benchmark your internet connection with javascript.
+Benchmark an internet connection with javascript.
 
 Depends on jQuery.
 
