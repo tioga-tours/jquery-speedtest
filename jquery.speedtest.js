@@ -1,14 +1,21 @@
 ;(function ($) {
+		
+	var milliFactor  = 1000,
+		kFactor = 1024,
+	
+	SpeedTest = function (options) {
+		var self = this,
+			opts,
+			i;
+		$.extend(true, self.options, options);
 
-	var SpeedTest = function (options) {
-		$.extend(true, this.options, options);
+		for (i=0; i<2;i++) {
+			opts = self.options[['upload', 'download'][i]];
 
-		for (type in ['upload', 'download']) {
-			var opts = this.options[type];
-			if (opts.byteSize > 2 * 1024 * 1024) {
+			if (opts.byteSize > 2 * kFactor * kFactor) {
 				throw 'Cannot bench with sizes bigger than 2 MB';
 			}
-			if (opts.byteStep > 1024 * 1024) {
+			if (opts.byteStep > kFactor * kFactor) {
 				throw 'Cannot bench with step sizes bigger than 1 MB';
 			}
 		}
@@ -17,8 +24,8 @@
 		options: {
 			upload: {
 				url: '',
-				byteSize: 300 * 1024,
-				byteStep: 100 * 1024,
+				byteSize: 300 * kFactor,
+				byteStep: 100 * kFactor,
 				iterations: 3,
 				timeout: 2, // Seconds
 				arbitraryHeaderByteSize: 400, // bytes
@@ -27,8 +34,8 @@
 			download: {
 				url: '',
 				iterations: 3,
-				byteSize: 300 * 1024,
-				byteStep: 100 * 1024,
+				byteSize: 300 * kFactor,
+				byteStep: 100 * kFactor,
 				timeout: 2, // Seconds
 				arbitraryHeaderByteSize: 400, // bytes
 				arbitraryConnectionTime: 20  // Milliseconds
@@ -98,30 +105,32 @@
 			var self = this,
 				data = {
 					size: byteSize
-				};
+				},
+				t;
 
 			if (self.startTime !== null) {
 				throw 'Cannot start bench again';
 			}
 
 			if (type === 'upload') {
-				data = this.randomString(byteSize);
+				data = self.randomString(byteSize);
 			}
 
 			self.rq = $.ajax({
-				url: this.options[type].url,
+				url: self.options[type].url,
 				method: type === 'upload' ? 'POST' : 'GET',
 				cache: false,
 				data: data,
-				timeout: self.options[type].timeout * 1000,
+				timeout: self.options[type].timeout * milliFactor,
 				success: function (data) {
 					var t = new Date(),
-						endTime = t.getSeconds() * 1000 + t.getMilliseconds(),
+						endTime = t.getSeconds() * milliFactor + t.getMilliseconds(),
 						duration = (endTime - self.startTime),
-						ot = 0;
+						ot = 0,
+						speed;
 					
 					if (data && data.ownTime) {
-						ot = data.ownTime * 1000;
+						ot = data.ownTime * milliFactor;
 					}
 
 					duration -= ot;
@@ -130,7 +139,7 @@
 						duration -= self.options[type].arbitraryConnectionTime;
 					}
 
-					var speed = Math.round((byteSize + self.options[type].arbitraryHeaderByteSize) / (duration/1000));
+					speed = Math.round((byteSize + self.options[type].arbitraryHeaderByteSize) / (duration/milliFactor));
 					self.startTime = null;
 					callback(speed);
 				},
@@ -143,8 +152,9 @@
 				}
 			});
 			// Set start time after ajax, not on beforeSend for more precise testing
-			var t = new Date();
-			self.startTime = t.getSeconds() * 1000 + t.getMilliseconds();
+			t = new Date();
+			self.startTime = t.getSeconds() * milliFactor + t.getMilliseconds();
 		}
 	};
+	window.SpeedTest = SpeedTest;
 })(jQuery);
