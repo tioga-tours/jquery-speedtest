@@ -6,7 +6,7 @@ function generateRandomData($size) {
 	while (strlen($randomString) < (int)$size) {
 		$randomString .= str_shuffle($chars);
 	}
-	$randomString = substr($randomString, 0, $size);
+	return substr($randomString, 0, $size);
 }
 
 header('Content-Type: application/json');
