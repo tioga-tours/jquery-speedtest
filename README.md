@@ -4,6 +4,8 @@ Benchmark an internet connection with javascript.
 
 Depends on jQuery.
 
+[Demo](https://tech.tiogatours.nl/jquery-speedtest/sample.htm)
+
 Example:
 ```javascript
 var speedTest = new SpeedTest({
