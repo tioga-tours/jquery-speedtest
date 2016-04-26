@@ -1,5 +1,8 @@
 <?php
 
+// Disable encoding
+header("Content-Encoding: none");
+
 function generateRandomData($size) {
 	$chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()_+`-=[]\\{}|;':,./<>?";
 	$randomString = '';
