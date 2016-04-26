@@ -24,10 +24,7 @@ var speedTest = new SpeedTest({
     timeout: 2,
     // Every request has a little overhead for headers
     //  this is an arbitrary number in bytes
-    arbitraryHeaderByteSize: 400,
-    // Normally the connection time is about 10-20 milliseconds
-    // this is also an arbitrary number in milliseconds
-    arbitraryConnectionTime: 20
+    arbitraryHeaderByteSize: 400
   },
   download: {
     // Where to get the data
@@ -46,14 +43,11 @@ var speedTest = new SpeedTest({
     timeout: 2,
     // Every request has a little overhead for headers
     //  this is an arbitrary number in bytes
-    arbitraryHeaderByteSize: 400,
-    // Normally the connection time is about 10-20 milliseconds
-    // this is also an arbitrary number in milliseconds
-    arbitraryConnectionTime: 20
+    arbitraryHeaderByteSize: 400
   }
 });
 
-speedTest.benchmark(function(downloadSpeed, uploadSpeed) {
+speedTest.benchmark().then(function(downloadSpeed, uploadSpeed) {
   console.log('Benchmark completed. Downloadspeed: ' + (downloadSpeed/1024) + ' KB/s, uploadspeed: ' + (uploadSpeed/1024) + ' KB/s');
 });
 ```
