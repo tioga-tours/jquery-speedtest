@@ -8,7 +8,7 @@
  *
  * Date: 2016-04-26
  */
-;(function ($) {
+;(function ($, undef) {
 
 	var milliFactor  = 1000,
 		kFactor = 1024,
@@ -34,10 +34,10 @@
         // Execute the test twice, the first connection always takes a long time
         // the second connection is much more responsive
         if (self.options.testConnectionTime === true) {
-            self.benchType('upload', 1, function () {
+            self.benchType('upload', 1).then(function () {
             });
 
-            self.benchType('upload', 1, function (speed, duration) {
+            self.benchType('upload', 1).then(function (speed, duration) {
                 self.connectTime = duration;
             });
         }
@@ -78,32 +78,43 @@
 			}
 			return randomString;
 		},
-		benchmark: function (callback)
+		benchmark: function ()
         {
-			var self = this;
-			self.benchUpload(function(uploadSpeed) {
-				self.benchDownload(function(downloadSpeed){
-					callback(downloadSpeed, uploadSpeed);
+			var self = this,
+                deferred = $.Deferred();
+			self.benchUpload().then(function(uploadSpeed, uploadDuration) {
+				self.benchDownload().then(function(downloadSpeed, downloadDuration){
+					deferred.resolve(downloadSpeed, uploadSpeed, uploadDuration, downloadDuration);
 				});
 			});
+            return deferred.promise();
 		},
-		benchUpload: function (callback)
+		benchUpload: function ()
         {
-			this.benchIterate('upload', this.options.upload.iterations, callback);
+            var deferred = $.Deferred();
+			this.benchIterate('upload', this.options.upload.iterations).then(function (speed, duration) {
+                deferred.resolve(speed, duration);
+            });
+            return deferred.promise();
 		},
-		benchDownload: function (callback)
+		benchDownload: function ()
         {
-			this.benchIterate('download', this.options.download.iterations, callback);
+            var deferred = $.Deferred();
+			this.benchIterate('download', this.options.download.iterations).then(function (speed, duration) {
+                deferred.resolve(speed, duration);
+            });
+            return deferred.promise();
 		},
-		benchIterate: function (type, iterations, callback) {
+		benchIterate: function (type, iterations) {
 			var self = this,
 				speeds = [],
                 durations = [],
 				byteSize = this.options[type].byteSize,
+                deferred = $.Deferred(),
 			run = function ()
 			{
 				iterations--;
-				self.benchType(type, byteSize, function (speed, duration) {
+				self.benchType(type, byteSize).then(function (speed, duration) {
 					if (speed !== -1) {
 						speeds.push(speed);
                         durations.push(duration);
@@ -122,26 +133,35 @@
                             sumDuration += durations[i];
 						}
 						if (speeds.length > 0) {
-							callback(Math.round(sumSpeed / speeds.length), Math.round(sumDuration / durations.length));
+							deferred.resolve(Math.round(sumSpeed / speeds.length), Math.round(sumDuration / durations.length));
 						} else {
-							callback(-1, -1);
+                            deferred.resolve(-1, -1);
 						}
 					}
 				});
 			};
 			run();
+            return deferred.promise();
 		},
-		benchType: function (type, byteSize, callback)
+		benchType: function (type, byteSize, deferred)
         {
 			var self = this,
 				data = 'size='+byteSize,
-				t;
+				t,
+                $s = $(self);
+
+            $s.trigger('before-run', [type, byteSize]);
+
+            if (!deferred) {
+                deferred = $.Deferred();
+            }
 
 			if (self.startTime !== null) {
 				setTimeout(function () {
-                    self.benchType(type, byteSize, callback);
+                    $s.trigger('run-wait', [type, byteSize]);
+                    self.benchType(type, byteSize, deferred);
                 }, 300);
-                return;
+                return deferred.promise();
 			}
 
 			if (type === 'upload') {
@@ -154,6 +174,8 @@
                 byteSize = data.length;
 			}
 
+
+            $s.trigger('before-start', [type, byteSize]);
 
 			self.rq = $.ajax({
 				url: self.options[type].url,
@@ -186,20 +208,26 @@
 					duration = duration - ot - self.connectTime - decodeTime;
 
 					speed = Math.round((byteSize + self.options[type].arbitraryHeaderByteSize) / (duration/milliFactor));
+
+                    $s.trigger('run-success', [type, byteSize, speed, duration]);
+
 					self.startTime = null;
-					callback(speed, duration);
+					deferred.resolve(speed, duration);
 				},
 				complete: function () {
-					clearTimeout(self.timeout);
+                    $s.trigger('run-complete', [type, byteSize]);
 				},
-				error: function () {
+				error: function (a,b,c) {
+                    $s.trigger('run-error', [a,b,c]);
 					self.startTime = null;
-					callback(-1);
+                    deferred.resolve(-1, -1);
 				}
 			});
 			// Set start time after ajax, not on beforeSend for more precise testing
 			t = new Date();
 			self.startTime = t.getSeconds() * milliFactor + t.getMilliseconds();
+
+            return deferred.promise();
 		}
 	};
 	window.SpeedTest = SpeedTest;
