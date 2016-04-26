@@ -1,5 +1,5 @@
 /*!
- * jQuery JavaScript Library v2.2.3
+ * jQuery Speedtest for testing internet speed
  * https://tech.tiogatours.nl/jquery-speedtest/README.md
  *
  * Copyright Tioga Tours B.V.
