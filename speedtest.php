@@ -11,7 +11,8 @@ function generateRandomData($size) {
 
 header('Content-Type: application/json');
 
-if (empty($_POST)) {
+// Get method is download
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 	$t = microtime(true);
 	echo json_encode([
 		'data'=> generateRandomData($_GET['size']),
