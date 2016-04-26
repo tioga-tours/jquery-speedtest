@@ -3,6 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<title>Javascript connection benchmark</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
 		<script type="text/javascript" src="jquery.speedtest.js"></script>
 		<script type="text/javascript">
@@ -49,14 +50,50 @@
 			  testConnectionTime: true
 			});
 
-			speedTest.benchmark(function(downloadSpeed, uploadSpeed) {
-			  $('#status').text('Benchmark completed. Downloadspeed: ' + Math.round(downloadSpeed/1024) + ' KB/s, uploadspeed: ' + Math.round(uploadSpeed/1024) + ' KB/s');
-			});
+            function log (msg) {
+                $('#log').html(msg + '<br/>' + $('#log').html());
+            }
+            $(speedTest).on({
+                'before-run': function (e, type, size) {
+                    log('Initializing benchmark run for ' + type + ' with ' + Math.round(size/1024) +  'KB');
+                },
+                'before-start': function (e, type, size) {
+                    log('Starting benchmark run for ' + type + ' with ' + Math.round(size/1024) +  'KB');
+                },
+                'run-success': function (e, type, size, speed, duration) {
+                    log('Run successful for ' + type + ' with ' + Math.round(size/1024) +  'KB in ' + Math.round(duration) + 'ms (' + Math.round(speed/1024) + ' KB/s)');
+                },
+
+                'run-complete': function (e, type, size) {
+                    log('Run complete for ' + type + ' with ' + Math.round(size/1024) +  'KB');
+                },
+
+                'run-error': function (e, type, size, xhr, statusText) {
+                    log('Failed run for ' + type + ' with ' + Math.round(size/1024) +  'KB (' + statusText + ')');
+                },
+
+                'run-wait': function (e, type, size) {
+                    log('Queueing run for ' + type + ' with ' + Math.round(size/1024) +  'KB');
+                },
+            });
+			speedTest.benchmark().then(function(downloadSpeed, uploadSpeed) {
+                $('#status').html('Benchmark completed. <br/>Download speed: <span class="label label-success">' + Math.round(downloadSpeed/1024) + ' KB/s</span><br/>Upload speed: <span class="label label-success">' + Math.round(uploadSpeed/1024) + ' KB/s</span>');
+            });
 		});
 		</script>
 	</head>
 	<body>
-		<h1>jQuery speedtest</h1>
-		<p id="status">The speedtest is running...</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 col-sm-8">
+                    <h1>jQuery speedtest</h1>
+                    <p id="status" class="lead">The speedtest is running...</p>
+
+                    <h2>Log</h2>
+                    <pre id="log"></pre>
+                </div>
+            </div>
+        </div>
+
 	</body>
 </html>
