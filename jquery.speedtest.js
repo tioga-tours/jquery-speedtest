@@ -1,9 +1,20 @@
+/*!
+ * jQuery JavaScript Library v2.2.3
+ * https://tech.tiogatours.nl/jquery-speedtest/README.md
+ *
+ * Copyright Tioga Tours B.V.
+ * Released under the MIT license
+ * https://tech.tiogatours.nl/jquery-speedtest/LICENSE
+ *
+ * Date: 2016-04-26
+ */
 ;(function ($) {
-		
+
 	var milliFactor  = 1000,
 		kFactor = 1024,
-	
-	SpeedTest = function (options) {
+
+	SpeedTest = function (options)
+    {
 		var self = this,
 			opts,
 			i;
@@ -19,6 +30,17 @@
 				throw 'Cannot bench with step sizes bigger than 1 MB';
 			}
 		}
+
+        // Execute the test twice, the first connection always takes a long time
+        // the second connection is much more responsive
+        if (self.options.testConnectionTime === true) {
+            self.benchType('upload', 1, function () {
+            });
+
+            self.benchType('upload', 1, function (speed, duration) {
+                self.connectTime = duration;
+            });
+        }
 	};
 	SpeedTest.prototype = {
 		options: {
@@ -28,8 +50,7 @@
 				byteStep: 100 * kFactor,
 				iterations: 3,
 				timeout: 2, // Seconds
-				arbitraryHeaderByteSize: 400, // bytes
-				arbitraryConnectionTime: 20  // Milliseconds
+				arbitraryHeaderByteSize: 400 // bytes
 			},
 			download: {
 				url: '',
@@ -37,11 +58,14 @@
 				byteSize: 300 * kFactor,
 				byteStep: 100 * kFactor,
 				timeout: 2, // Seconds
-				arbitraryHeaderByteSize: 400, // bytes
-				arbitraryConnectionTime: 20  // Milliseconds
-			}
+				arbitraryHeaderByteSize: 400 // bytes
+			},
+            // Test the time it takes to do an empty
+            // request
+            testConnectionTime: true
 		},
 		startTime: null,
+        connectTime: 0,
 
 		randomString: function (byteSize)
 		{
@@ -54,7 +78,8 @@
 			}
 			return randomString;
 		},
-		benchmark: function (callback) {
+		benchmark: function (callback)
+        {
 			var self = this;
 			self.benchUpload(function(uploadSpeed) {
 				self.benchDownload(function(downloadSpeed){
@@ -62,22 +87,26 @@
 				});
 			});
 		},
-		benchUpload: function (callback) {
+		benchUpload: function (callback)
+        {
 			this.benchIterate('upload', this.options.upload.iterations, callback);
 		},
-		benchDownload: function (callback) {
+		benchDownload: function (callback)
+        {
 			this.benchIterate('download', this.options.download.iterations, callback);
 		},
 		benchIterate: function (type, iterations, callback) {
 			var self = this,
 				speeds = [],
-				byteSize = this.options[type].byteSize;
+                durations = [],
+				byteSize = this.options[type].byteSize,
 			run = function ()
 			{
 				iterations--;
-				self.benchType(type, byteSize, function (speed) {
+				self.benchType(type, byteSize, function (speed, duration) {
 					if (speed !== -1) {
 						speeds.push(speed);
+                        durations.push(duration);
 						byteSize += self.options[type].byteStep;
 					} else {
 						byteSize -= self.options[type].byteStep;
@@ -86,35 +115,45 @@
 					if (iterations > 0) {
 						run();
 					} else {
-						var sum = 0, i;
+						var sumSpeed = 0, i, sumDuration = 0;
 
 						for (i=0;i<speeds.length; i++) {
-							sum += speeds[i];
+                            sumSpeed += speeds[i];
+                            sumDuration += durations[i];
 						}
 						if (speeds.length > 0) {
-							callback(Math.round(sum / speeds.length));
+							callback(Math.round(sumSpeed / speeds.length), Math.round(sumDuration / durations.length));
 						} else {
-							callback(-1);
+							callback(-1, -1);
 						}
 					}
 				});
 			};
 			run();
 		},
-		benchType: function (type, byteSize, callback) {
+		benchType: function (type, byteSize, callback)
+        {
 			var self = this,
-				data = {
-					size: byteSize
-				},
+				data = 'size='+byteSize,
 				t;
 
 			if (self.startTime !== null) {
-				throw 'Cannot start bench again';
+				setTimeout(function () {
+                    self.benchType(type, byteSize, callback);
+                }, 300);
+                return;
 			}
 
 			if (type === 'upload') {
-				data = self.randomString(byteSize);
+                data = '';
+                var chunkSize = 200;
+                for (var i=0; i<byteSize; i+=chunkSize) {
+                    data += '&data=' + encodeURIComponent(self.randomString(chunkSize));
+                }
+                // Correct the size as some extra data was added
+                byteSize = data.length;
 			}
+
 
 			self.rq = $.ajax({
 				url: self.options[type].url,
@@ -122,26 +161,33 @@
 				cache: false,
 				data: data,
 				timeout: self.options[type].timeout * milliFactor,
-				success: function (data) {
+				success: function (data, txt, xhr) {
 					var t = new Date(),
 						endTime = t.getSeconds() * milliFactor + t.getMilliseconds(),
 						duration = (endTime - self.startTime),
 						ot = 0,
-						speed;
-					
+						speed,
+                        decodeTime = 0,
+                        s, e;
+
+                    if (xhr.responseText) {
+                        // Benchmark decoding, larger responses require serious decode time
+                        s = new Date();
+                        JSON.parse(xhr.responseText);
+                        e = new Date();
+
+                        decodeTime = e.getSeconds() * milliFactor + e.getMilliseconds() - s.getSeconds() * milliFactor - s.getMilliseconds();
+                    }
+
 					if (data && data.ownTime) {
 						ot = data.ownTime * milliFactor;
 					}
 
-					duration -= ot;
-
-					if (duration > self.options[type].arbitraryConnectionTime) {
-						duration -= self.options[type].arbitraryConnectionTime;
-					}
+					duration = duration - ot - self.connectTime - decodeTime;
 
 					speed = Math.round((byteSize + self.options[type].arbitraryHeaderByteSize) / (duration/milliFactor));
 					self.startTime = null;
-					callback(speed);
+					callback(speed, duration);
 				},
 				complete: function () {
 					clearTimeout(self.timeout);
