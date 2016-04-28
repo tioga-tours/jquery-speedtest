@@ -26,9 +26,6 @@
                 if (opts.byteSize > 2 * kFactor * kFactor) {
                     throw 'Cannot bench with sizes bigger than 2 MB';
                 }
-                if (opts.byteStep > kFactor * kFactor) {
-                    throw 'Cannot bench with step sizes bigger than 1 MB';
-                }
             }
 
             // Execute the test twice, the first connection always takes a long time
@@ -37,7 +34,7 @@
                 self.benchType('upload', 1).then(function () {
                 });
 
-                self.benchType('upload', 1).then(function (speed, duration) {
+                self.benchIterate('upload', 1, 5).then(function (speed, duration) {
                     self.connectTime = duration;
                 });
             }
@@ -47,16 +44,20 @@
             upload: {
                 url: '',
                 byteSize: 300 * kFactor,
-                byteStep: 100 * kFactor,
-                iterations: 3,
+                scaleUp: 1.5,
+                scaleDown: 0.5,
+                iterations: 3, // Number of successful iterations
+                maxIterations: 15, // Absolute limit
                 timeout: 2, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
             download: {
                 url: '',
-                iterations: 3,
+                iterations: 3, // Number of successful iterations
+                maxIterations: 15, // Absolute limit
                 byteSize: 300 * kFactor,
-                byteStep: 100 * kFactor,
+                scaleUp: 1.5,
+                scaleDown: 0.5,
                 timeout: 2, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
@@ -91,39 +92,52 @@
         },
         benchUpload: function ()
         {
-            var deferred = $.Deferred();
-            this.benchIterate('upload', this.options.upload.iterations).then(function (speed, duration) {
+            var deferred = $.Deferred(),
+                opts = this.options.download;
+            this.benchIterate('upload', opts.iterations, opts.maxIterations).then(function (speed, duration) {
                 deferred.resolve(speed, duration);
             });
             return deferred.promise();
         },
         benchDownload: function ()
         {
-            var deferred = $.Deferred();
-            this.benchIterate('download', this.options.download.iterations).then(function (speed, duration) {
+            var deferred = $.Deferred(),
+                opts = this.options.download;
+            this.benchIterate('download', opts.iterations, opts.maxIterations).then(function (speed, duration) {
                 deferred.resolve(speed, duration);
             });
             return deferred.promise();
         },
-        benchIterate: function (type, iterations) {
+        benchIterate: function (type, successfulIterations, maxIterations) {
             var self = this,
                 speeds = [],
                 durations = [],
-                byteSize = this.options[type].byteSize,
+                opts = self.options[type],
+                byteSize = opts.byteSize,
                 deferred = $.Deferred(),
                 run = function ()
                 {
-                    iterations--;
+                    maxIterations--;
                     self.benchType(type, byteSize).then(function (speed, duration) {
                         if (speed !== -1) {
                             speeds.push(speed);
                             durations.push(duration);
-                            byteSize += self.options[type].byteStep;
+                            byteSize = byteSize * opts.scaleUp;
+                            successfulIterations--;
                         } else {
-                            byteSize -= self.options[type].byteStep;
+                            byteSize = byteSize * opts.scaleDown;
                         }
 
-                        if (iterations > 0) {
+                        // Limit to max 2MB
+                        if (byteSize > 2 * 1024 * 1024) {
+                            byteSize = 2*1024*1024;
+                        }
+                        // Limit to min 1B
+                        if (byteSize < 1) {
+                            byteSize = 1;
+                        }
+
+                        if (successfulIterations > 0 && maxIterations > 0) {
                             run();
                         } else {
                             var sumSpeed = 0, i, sumDuration = 0;
