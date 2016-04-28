@@ -4,7 +4,7 @@ Benchmark an internet connection with javascript.
 
 Depends on jQuery.
 
-[Demo](https://tech.tiogatours.nl/jquery-speedtest/sample.htm)
+[Demo](https://tech.tiogatours.nl/jquery-speedtest/demo.htm)
 
 Example:
 ```javascript
