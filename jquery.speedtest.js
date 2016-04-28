@@ -31,10 +31,7 @@
             // Execute the test twice, the first connection always takes a long time
             // the second connection is much more responsive
             if (self.options.testConnectionTime === true) {
-                self.benchType('upload', 1).then(function () {
-                });
-
-                self.benchIterate('upload', 1, 5).then(function (speed, duration) {
+                self.benchIterate('upload', 3, 8).then(function (speed, duration) {
                     self.connectTime = duration;
                 });
             }
@@ -43,22 +40,22 @@
         options: {
             upload: {
                 url: '',
-                byteSize: 300 * kFactor,
+                byteSize: 100 * kFactor,
                 scaleUp: 1.5,
                 scaleDown: 0.5,
                 iterations: 3, // Number of successful iterations
                 maxIterations: 15, // Absolute limit
-                timeout: 2, // Seconds
+                timeout: 0.01, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
             download: {
                 url: '',
                 iterations: 3, // Number of successful iterations
                 maxIterations: 15, // Absolute limit
-                byteSize: 300 * kFactor,
+                byteSize: 100 * kFactor,
                 scaleUp: 1.5,
                 scaleDown: 0.5,
-                timeout: 2, // Seconds
+                timeout: 0.01, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
             // Test the time it takes to do an empty
@@ -122,10 +119,10 @@
                         if (speed !== -1) {
                             speeds.push(speed);
                             durations.push(duration);
-                            byteSize = byteSize * opts.scaleUp;
+                            byteSize = Math.round(byteSize * opts.scaleUp);
                             successfulIterations--;
                         } else {
-                            byteSize = byteSize * opts.scaleDown;
+                            byteSize = Math.round(byteSize * opts.scaleDown);
                         }
 
                         // Limit to max 2MB
@@ -179,15 +176,9 @@
             }
 
             if (type === 'upload') {
-                data = '';
-                var chunkSize = 200 < byteSize ? 200 : byteSize;
-                for (var i=0; i<byteSize; i+=chunkSize) {
-                    data += '&data=' + encodeURIComponent(self.randomString(chunkSize));
-                }
-                // Correct the size as some extra data was added
+                data = 'data=' + encodeURIComponent(self.randomString(byteSize));
                 byteSize = data.length;
             }
-
 
             $s.trigger('before-start', [type, byteSize]);
 
@@ -196,7 +187,8 @@
                 method: type === 'upload' ? 'POST' : 'GET',
                 cache: false,
                 data: data,
-                timeout: self.options[type].timeout * milliFactor,
+                // Add connect time, because we can never go any faster than that
+                timeout: self.options[type].timeout * milliFactor + self.connectTime,
                 success: function (data, txt, xhr) {
                     var t = new Date(),
                         endTime = t.getSeconds() * milliFactor + t.getMilliseconds(),
