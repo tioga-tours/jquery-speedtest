@@ -45,7 +45,7 @@
                 scaleDown: 0.5,
                 iterations: 3, // Number of successful iterations
                 maxIterations: 15, // Absolute limit
-                timeout: 0.01, // Seconds
+                timeout: 2, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
             download: {
@@ -55,7 +55,7 @@
                 byteSize: 100 * kFactor,
                 scaleUp: 1.5,
                 scaleDown: 0.5,
-                timeout: 0.01, // Seconds
+                timeout: 2, // Seconds
                 arbitraryHeaderByteSize: 400 // bytes
             },
             // Test the time it takes to do an empty
