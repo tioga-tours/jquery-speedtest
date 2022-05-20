@@ -90,7 +90,7 @@
         benchUpload: function ()
         {
             var deferred = $.Deferred(),
-                opts = this.options.download;
+                opts = this.options.upload;
             this.benchIterate('upload', opts.iterations, opts.maxIterations).then(function (speed, duration) {
                 deferred.resolve(speed, duration);
             });
